@@ -5,7 +5,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
 /**
- * Created by duncan on 4/3/17.
+ * Created by duncan on 4/5/17.
  */
 public class ReduceTask implements iReducer {
 
