@@ -1,0 +1,22 @@
+done 1. It (master) opens the file, and reads it line by line.
+
+done 2. For each line, it starts a mapper task on one of the mapper nodes.
+
+done 3. A mapper task counts the frequency of occurrence of words in the line sent to it.
+
+done 4. Then, it contacts the master to get the addresses of the reducers in charge of each key it
+generated.
+
+done 5. When the master receives a request from a mapper task for the addresses of the reducer tasks
+corresponding to its keys, it goes through the mapper task keys and,
+    a. If the key is not assigned a reducer task, a reducer task is started and the remote object reference is sent to the mapper task.
+    b. If the key has been assigned to an already existing reducer task, the corresponding object is simply sent to the mapper task.
+
+6. When a reducer task is started, it’s in charge of counting the frequency of occurrence of a specific key word.
+
+7. The mapper task directly contacts the corresponding reducer task, and sends to it its locally stored word count, and terminates when done.
+
+8. The reducer task keeps adding to the frequency count of the key word, until all mapper tasks are done.
+
+9. Once the reducer is done, it sends its results to the master, and terminates when done. 10. Finally, the master stores all the results received from all reducers to an output file, and
+terminates.
