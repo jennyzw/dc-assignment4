@@ -9,6 +9,10 @@ import java.rmi.server.UnicastRemoteObject;
  */
 public class ReduceTask implements iReducer {
 
+    private iMaster master;
+    private String key;
+    private int count;
+
     public ReduceTask(boolean isManager) {
 
         if (isManager) {
@@ -24,9 +28,15 @@ public class ReduceTask implements iReducer {
 
     }
 
+    public ReduceTask(String key, iMaster master) {
+        this.master = master;
+        this.key = key;
+        this.count = 0;
+    }
+
     @Override
     public iReducer createReduceTask(String key, iMaster master) throws RemoteException, AlreadyBoundException {
-        return null;
+        return new ReduceTask(key, master);
     }
 
     @Override

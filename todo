@@ -12,7 +12,7 @@ corresponding to its keys, it goes through the mapper task keys and,
     a. If the key is not assigned a reducer task, a reducer task is started and the remote object reference is sent to the mapper task.
     b. If the key has been assigned to an already existing reducer task, the corresponding object is simply sent to the mapper task.
 
-6. When a reducer task is started, it’s in charge of counting the frequency of occurrence of a specific key word.
+done 6. When a reducer task is started, it’s in charge of counting the frequency of occurrence of a specific key word.
 
 7. The mapper task directly contacts the corresponding reducer task, and sends to it its locally stored word count, and terminates when done.
 
