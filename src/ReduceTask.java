@@ -41,7 +41,7 @@ public class ReduceTask implements iReducer {
 
     @Override
     public void receiveValues(int value) throws RemoteException {
-
+        count += value;
     }
 
     @Override
