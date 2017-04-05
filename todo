@@ -14,7 +14,7 @@ corresponding to its keys, it goes through the mapper task keys and,
 
 done 6. When a reducer task is started, it’s in charge of counting the frequency of occurrence of a specific key word.
 
-7. The mapper task directly contacts the corresponding reducer task, and sends to it its locally stored word count, and terminates when done.
+done 7. The mapper task directly contacts the corresponding reducer task, and sends to it its locally stored word count, and terminates when done.
 
 8. The reducer task keeps adding to the frequency count of the key word, until all mapper tasks are done.
 
