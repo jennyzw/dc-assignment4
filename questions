@@ -1,0 +1,9 @@
+what is the createMapTask method for?
+
+should mappers create their own counts, or just pass '1' to some reducers
+(like "the") multiple times
+
+it seems like createReduceTask should be a method on a iReducerFactory/Manager
+class, though that's not as you're intending it seems...
+
+what is the iReducer returned by createReduceTask? not self, right?
