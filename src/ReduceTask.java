@@ -18,9 +18,10 @@ public class ReduceTask implements iReducer {
         if (isManager) {
             // export manager objects and bind to local rmi for master access
             try {
-                Registry registry = LocateRegistry.getRegistry();
-                iReducer reduceManagerStub = (iReducer) UnicastRemoteObject.exportObject(this);
+                Registry registry = LocateRegistry.getRegistry(1099);
+                iReducer reduceManagerStub = (iReducer) UnicastRemoteObject.exportObject(this, 0);
                 registry.rebind("reduceManager", reduceManagerStub);
+                System.out.println("Reduce manager ready!");
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -36,11 +37,13 @@ public class ReduceTask implements iReducer {
 
     @Override
     public iReducer createReduceTask(String key, iMaster master) throws RemoteException, AlreadyBoundException {
+        System.out.println("creating new reduce task: " + key);
         return new ReduceTask(key, master);
     }
 
     @Override
     public void receiveValues(int value) throws RemoteException {
+        System.out.println(key + ": " + value);
         count += value;
     }
 
@@ -56,9 +59,12 @@ public class ReduceTask implements iReducer {
                     e.printStackTrace();
                 }
             }
-        });
+        }).start();
 
         return 0;
     }
 
+    public static void main(String[] args) {
+        new ReduceTask(true);
+    }
 }

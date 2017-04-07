@@ -1,7 +1,4 @@
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -10,6 +7,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.Semaphore;
 
 /**
  * Created by duncan on 4/3/17.
@@ -22,11 +20,12 @@ public class Master implements iMaster {
     private Queue<iReducer> reduceManagers;
 
     private HashMap<String, iReducer> reduceTasks;  // stubs to active reduce tasks
+    private Semaphore reduceTasksMutex;
     private HashMap<String, iMapper> mapTasks;  // tracks active map tasks
 
-    private HashMap<String, Integer> masterWordCount;
+    private HashMap<String, Integer> masterWordCount;  // for collecting reducer values
 
-    private MapperNameGenerator nameGenerator;
+    private MapperNameGenerator nameGenerator;  // for uniquely naming mappers
 
     private class MapperNameGenerator {
         // used to generate mapper identification names
@@ -43,6 +42,7 @@ public class Master implements iMaster {
         mapManagers = new LinkedList<>();
         reduceManagers = new LinkedList<>();
         reduceTasks = new HashMap<>();
+        reduceTasksMutex = new Semaphore(1);
         mapTasks = new HashMap<>();
         masterWordCount = new HashMap<>();
 
@@ -56,9 +56,15 @@ public class Master implements iMaster {
             // locate stubs to all worker mapper and reducer managers
             Registry registry;
             for (String ip: workerIPs) {
-                registry = LocateRegistry.getRegistry(ip);
-                mapManagers.offer((iMapper) registry.lookup("mapManager"));
-                reduceManagers.offer((iReducer) registry.lookup("reduceManager"));
+                registry = LocateRegistry.getRegistry(ip, 1099);
+
+                iMapper mapManager = (iMapper) registry.lookup("mapManager");
+                mapManagers.offer(mapManager);
+                System.out.println("found map manager at ip " + ip + " : " + mapManager);
+
+                iReducer reduceManager = (iReducer) registry.lookup("reduceManager");
+                reduceManagers.offer(reduceManager);
+                System.out.println("found reduce manager at ip " + ip + " : " + reduceManager);
             }
 
         } catch (RemoteException e) {
@@ -69,23 +75,32 @@ public class Master implements iMaster {
     }
 
     @Override
-    public iReducer[] getReducers(String[] keys) throws RemoteException, AlreadyBoundException {
-        iReducer[] res = new iReducer[keys.length];
-        for (int i = 0; i < keys.length; i++) {
-            if (!reduceTasks.containsKey(keys[i])) {
-                iReducer reduceManager = reduceManagers.poll();
-                reduceManagers.offer(reduceManager);
+    public ArrayList<iReducer> getReducers(String[] keys) throws RemoteException, AlreadyBoundException {
+        ArrayList<iReducer> res = new ArrayList<>();
 
-                reduceTasks.put(keys[i], reduceManager.createReduceTask(keys[i], masterStub));
+        try {
+            reduceTasksMutex.acquire();
+            for (int i = 0; i < keys.length; i++) {
+                if (!reduceTasks.containsKey(keys[i])) {
+                    iReducer reduceManager = reduceManagers.poll();
+                    reduceManagers.offer(reduceManager);
+
+                    reduceTasks.put(keys[i], reduceManager.createReduceTask(keys[i], masterStub));
+                }
+                res.add(reduceTasks.get(keys[i]));
             }
-            res[i] = reduceTasks.get(keys[i]);
+            reduceTasksMutex.release();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
+
         return res;
     }
 
     @Override
     public void markMapperDone(String name) throws RemoteException {
         mapTasks.remove(name);
+        System.out.println("mapper " + name + " is done");
 
         if (mapTasks.isEmpty()) {
             for (iReducer reduceTask : reduceTasks.values()) {
@@ -99,7 +114,7 @@ public class Master implements iMaster {
                             e.printStackTrace();
                         }
                     }
-                });
+                }).start();
 
             }
         }
@@ -147,37 +162,50 @@ public class Master implements iMaster {
         System.out.println("Word count complete! Counts have been saved at " + pathname);
     }
 
-    private void wordCountFile (String filepath) {
-        Scanner reader = new Scanner(filepath);
-        iMapper mapManager;
-        iMapper mapTask;
+    public void wordCountFile (String filepath) {
 
-        while (reader.hasNextLine()) {
-            mapManager = mapManagers.poll();
-            mapManagers.offer(mapManager);
+        // make sure the target file exists
+        File target = new File(filepath);
+        assert(target.exists());
 
-            String mapperName = nameGenerator.next();
+        System.out.println("found " + filepath + ", commencing count...");
 
-            try {
-                mapTask = mapManager.createMapTask(mapperName);
-                mapTasks.put(mapperName, mapTask);
+        try {
+            Scanner reader = new Scanner(target);
+            iMapper mapManager;
 
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            mapTask.processInput(reader.nextLine(), masterStub);
-                        } catch (RemoteException e) {
-                            e.printStackTrace();
-                        } catch (AlreadyBoundException e) {
-                            e.printStackTrace();
+            while (reader.hasNextLine()) {
+                mapManager = mapManagers.poll();
+                mapManagers.offer(mapManager);
+
+                String mapperName = nameGenerator.next();
+                final String line = reader.nextLine();
+                System.out.println(line);
+
+                try {
+                    final iMapper mapTask = mapManager.createMapTask(mapperName);
+                    mapTasks.put(mapperName, mapTask);
+
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                mapTask.processInput(line, masterStub);
+                            } catch (RemoteException | AlreadyBoundException e) {
+                                e.printStackTrace();
+                            }
                         }
-                    }
-                });
+                    }).start();
 
-            } catch (RemoteException | AlreadyBoundException e) {
-                e.printStackTrace();
+                } catch (RemoteException | AlreadyBoundException e) {
+                    e.printStackTrace();
+                }
             }
+
+            System.out.println("all lines assigned to mappers");
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         }
     }
 
@@ -185,9 +213,7 @@ public class Master implements iMaster {
     public static void main(String[] args) {
 
         String[] workerIPs = new String[] {
-                "52.27.10.195",
-                "52.10.38.99",
-                "34.209.22.154"
+                "127.0.0.1",
         };
 
         System.out.println("Initializing and connecting master");
@@ -197,8 +223,11 @@ public class Master implements iMaster {
         System.out.println("type 'start' to commence MapReduce");
         Scanner scan = new Scanner(System.in);
         while (true) {
-            if (scan.nextLine().equals("start")) {
-                master.wordCountFile("path_goes_here");
+            // TODO change this back
+//            if (scan.nextLine().equals("start")) {
+            if (true) {
+                master.wordCountFile("dummy.text");
+                break;
             } else {
                 System.out.println("didn't catch that, try 'start'...");
             }
