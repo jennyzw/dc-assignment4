@@ -5,6 +5,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.Semaphore;
 
 /**
  * Created by duncan on 4/5/17.
@@ -50,22 +51,33 @@ public class MapTask implements iMapper {
         String[] distinctWords = miniHist.keySet().toArray(new String[miniHist.size()]);
 
         ArrayList<iReducer> reducers = theMaster.getReducers(distinctWords);
+        // this semaphore will be used to verify that all reducers have received values
+        // before we report that the mapper is done.
+        Semaphore valuesReportedSemaphore = new Semaphore(0);
 
-        for (int i = 0; i < distinctWords.length; i++) {
-            final iReducer reducer = reducers.get(i);
-            final int value = miniHist.get(distinctWords[i]);
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        reducer.receiveValues(value);
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
+        try {
+            for (int i = 0; i < distinctWords.length; i++) {
+                final iReducer reducer = reducers.get(i);
+                final int value = miniHist.get(distinctWords[i]);
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            reducer.receiveValues(value);
+                            valuesReportedSemaphore.release();
+                        } catch (RemoteException e) {
+                            e.printStackTrace();
+                        }
                     }
-                }
-            }).start();
-        }
+                }).start();
+            }
 
+            valuesReportedSemaphore.acquire(distinctWords.length);
+            theMaster.markMapperDone(name);
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) {

@@ -22,8 +22,10 @@ public class Master implements iMaster {
     private HashMap<String, iReducer> reduceTasks;  // stubs to active reduce tasks
     private Semaphore reduceTasksMutex;
     private HashMap<String, iMapper> mapTasks;  // tracks active map tasks
+    private Semaphore mapTasksMutex;
 
     private HashMap<String, Integer> masterWordCount;  // for collecting reducer values
+    private Semaphore masterWordCountMutex;
 
     private MapperNameGenerator nameGenerator;  // for uniquely naming mappers
 
@@ -44,7 +46,9 @@ public class Master implements iMaster {
         reduceTasks = new HashMap<>();
         reduceTasksMutex = new Semaphore(1);
         mapTasks = new HashMap<>();
+        mapTasksMutex = new Semaphore(1);
         masterWordCount = new HashMap<>();
+        masterWordCountMutex = new Semaphore(1);
 
         nameGenerator = new MapperNameGenerator();
 
@@ -99,35 +103,54 @@ public class Master implements iMaster {
 
     @Override
     public void markMapperDone(String name) throws RemoteException {
-        mapTasks.remove(name);
-        System.out.println("mapper " + name + " is done");
+        try {
+            mapTasksMutex.acquire();
+            mapTasks.remove(name);
+            System.out.println("mapper " + name + " is done");
 
-        if (mapTasks.isEmpty()) {
-            for (iReducer reduceTask : reduceTasks.values()) {
+            if (mapTasks.isEmpty()) {
+                System.out.println("reached here");
+                reduceTasksMutex.acquire();
+                for (iReducer reduceTask : reduceTasks.values()) {
 
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            reduceTask.terminate();
-                        } catch (RemoteException e) {
-                            e.printStackTrace();
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                reduceTask.terminate();
+                            } catch (RemoteException e) {
+                                e.printStackTrace();
+                            }
                         }
-                    }
-                }).start();
+                    }).start();
 
+                }
+                reduceTasksMutex.release();
             }
+            mapTasksMutex.release();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
     @Override
     public void receiveOutput(String key, int value) throws RemoteException {
-        masterWordCount.put(key, value);
+        System.out.println("output: " + key + " - " + value);
+        try {
+            masterWordCountMutex.acquire();
+            masterWordCount.put(key, value);
+            masterWordCountMutex.release();
 
-        reduceTasks.remove(key);
+            reduceTasksMutex.acquire();
+            reduceTasks.remove(key);
 
-        if (reduceTasks.isEmpty()) {
-            writeToFile();
+            if (reduceTasks.isEmpty()) {
+                writeToFile();
+            }
+            reduceTasksMutex.release();
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
@@ -142,12 +165,12 @@ public class Master implements iMaster {
         String log = String.join("\n", outputLines);
 
         // make sure out/ dir exists
-        File dir = new File("out");
+        File dir = new File("data");
         if (!dir.exists()) dir.mkdir();
 
         // create a new timestamped file
         String timeStamp = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(new Date());
-        String pathname = "out/word_count_" + timeStamp + ".txt";
+        String pathname = "data/word_count_" + timeStamp + ".txt";
         File logFile = new File(pathname);
 
         // write log to that file
