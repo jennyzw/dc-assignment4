@@ -12,3 +12,5 @@ sudo yum remove java-1.7.0-openjdk
 sudo yum install java-devel
 
 scp -ri key/keypair.pem src/* ec2-user@ec2-54-148-227-118.us-west-2.compute.amazonaws.com:~/; scp -ri key/keypair.pem src/* ec2-user@ec2-52-34-43-105.us-west-2.compute.amazonaws.com:~/
+
+scp -ri key/keypair.pem src/* ec2-user@ec2-54-148-227-118.us-west-2.compute.amazonaws.com:~/;
