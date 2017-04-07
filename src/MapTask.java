@@ -11,7 +11,11 @@ import java.util.HashMap;
 
 public class MapTask implements iMapper {
 
-    public MapTask(boolean isManager) {
+    String name;
+
+    public MapTask(String name, boolean isManager) {
+
+        this.name = name;
 
         if (isManager) {
             // export manager objects and bind to local rmi for master access
@@ -28,7 +32,7 @@ public class MapTask implements iMapper {
 
     @Override
     public iMapper createMapTask(String name) throws RemoteException, AlreadyBoundException {
-        return (iMapper) UnicastRemoteObject.exportObject(new MapperReducer(false), 0);
+        return (iMapper) UnicastRemoteObject.exportObject(new MapTask(name, false), 0);
     }
 
     @Override

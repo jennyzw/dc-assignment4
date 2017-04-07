@@ -22,17 +22,31 @@ public class Master implements iMaster {
     private Queue<iReducer> reduceManagers;
 
     private HashMap<String, iReducer> reduceTasks;  // stubs to active reduce tasks
-    private int activeMapTasks;  // tracks how many map tasks are active
+    private HashMap<String, iMapper> mapTasks;  // tracks active map tasks
 
     private HashMap<String, Integer> masterWordCount;
+
+    private MapperNameGenerator nameGenerator;
+
+    private class MapperNameGenerator {
+        // used to generate mapper identification names
+        private int i = 0;
+
+        public String next() {
+            i++;
+            return String.format("map_%07d", i);
+        }
+    }
 
 
     public Master(String[] workerIPs) {
         mapManagers = new LinkedList<>();
         reduceManagers = new LinkedList<>();
         reduceTasks = new HashMap<>();
-        activeMapTasks = 0;
+        mapTasks = new HashMap<>();
         masterWordCount = new HashMap<>();
+
+        nameGenerator = new MapperNameGenerator();
 
         try {
 
@@ -70,10 +84,10 @@ public class Master implements iMaster {
     }
 
     @Override
-    public void markMapperDone() throws RemoteException {
-        activeMapTasks--;
+    public void markMapperDone(String name) throws RemoteException {
+        mapTasks.remove(name);
 
-        if (activeMapTasks == 0) {
+        if (mapTasks.isEmpty()) {
             for (iReducer reduceTask : reduceTasks.values()) {
 
                 new Thread(new Runnable() {
@@ -133,7 +147,7 @@ public class Master implements iMaster {
         System.out.println("Word count complete! Counts have been saved at " + pathname);
     }
 
-    private void wordCountFile(String filepath) {
+    private void wordCountFile (String filepath) {
         Scanner reader = new Scanner(filepath);
         iMapper mapManager;
         iMapper mapTask;
@@ -142,9 +156,11 @@ public class Master implements iMaster {
             mapManager = mapManagers.poll();
             mapManagers.offer(mapManager);
 
+            String mapperName = nameGenerator.next();
+
             try {
-                mapTask = mapManager.createMapTask("map task name");  // TODO: why the name?
-                activeMapTasks++;
+                mapTask = mapManager.createMapTask(mapperName);
+                mapTasks.put(mapperName, mapTask);
 
                 new Thread(new Runnable() {
                     @Override
