@@ -46,6 +46,18 @@ public class ReduceTask implements iReducer {
 
     @Override
     public int terminate() throws RemoteException {
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    master.receiveOutput(key, count);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
         return 0;
     }
 

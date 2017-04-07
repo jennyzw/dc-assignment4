@@ -8,6 +8,3 @@ class, though that's not as you're intending it seems...
 
 what is the iReducer returned by createReduceTask? not self, right?
 
-
-
-new: what does "terminates when done" mean in step 7 of the directions
