@@ -9,7 +9,7 @@ import java.util.ArrayList;
  */
 public interface iMaster extends Remote,Serializable {
 	// TODO: try changing this back to iReducer[]
-	public ArrayList<iReducer> getReducers(String[] keys) throws RemoteException, AlreadyBoundException;
+	public iReducer[] getReducers(String[] keys) throws RemoteException, AlreadyBoundException;
 	public void markMapperDone(String name) throws RemoteException;
 	public void receiveOutput(String key,int value) throws RemoteException;
 }

@@ -10,4 +10,6 @@ public interface iReducer extends Remote, Serializable {
     public iReducer createReduceTask (String key, iMaster master) throws RemoteException, AlreadyBoundException;
     public void receiveValues (int value) throws RemoteException;
     public int terminate() throws RemoteException;
+
+    public int getCount() throws RemoteException;
 }

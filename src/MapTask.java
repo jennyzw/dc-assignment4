@@ -40,24 +40,28 @@ public class MapTask implements iMapper {
     @Override
     public void processInput(String input, iMaster theMaster) throws RemoteException, AlreadyBoundException {
         System.out.println("processing input: " + input);
-        String [] words = input.split("\\s+");
+        String[] words = input.split("\\s+");
+        System.out.println(words.length);
+        System.out.println(words[0]);
+
         HashMap<String, Integer> miniHist = new HashMap<>();
 
         for (String word : words) {
             word = word.replace("[^a-zA-Z]", "").toLowerCase();
-            miniHist.put(word, miniHist.getOrDefault(word, 0) + 1);
+            if (!word.equals("")){
+                miniHist.put(word, miniHist.getOrDefault(word, 0) + 1);
+            }
         }
-
         String[] distinctWords = miniHist.keySet().toArray(new String[miniHist.size()]);
 
-        ArrayList<iReducer> reducers = theMaster.getReducers(distinctWords);
+        iReducer[] reducers = theMaster.getReducers(distinctWords);
         // this semaphore will be used to verify that all reducers have received values
         // before we report that the mapper is done.
         Semaphore valuesReportedSemaphore = new Semaphore(0);
 
         try {
             for (int i = 0; i < distinctWords.length; i++) {
-                final iReducer reducer = reducers.get(i);
+                final iReducer reducer = reducers[i];
                 final int value = miniHist.get(distinctWords[i]);
                 new Thread(new Runnable() {
                     @Override

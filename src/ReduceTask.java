@@ -11,7 +11,7 @@ public class ReduceTask implements iReducer {
 
     private iMaster master;
     private String key;
-    private int count;
+    public int count;
 
     public ReduceTask(boolean isManager) {
 
@@ -38,7 +38,7 @@ public class ReduceTask implements iReducer {
     @Override
     public iReducer createReduceTask(String key, iMaster master) throws RemoteException, AlreadyBoundException {
         System.out.println("creating new reduce task: " + key);
-        return new ReduceTask(key, master);
+        return (iReducer) UnicastRemoteObject.exportObject(new ReduceTask(key, master), 0);
     }
 
     @Override
@@ -64,6 +64,12 @@ public class ReduceTask implements iReducer {
 
         return 0;
     }
+
+    @Override
+    public int getCount() throws RemoteException {
+        return count;
+    }
+
 
     public static void main(String[] args) {
         new ReduceTask(true);

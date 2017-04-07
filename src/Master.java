@@ -79,8 +79,8 @@ public class Master implements iMaster {
     }
 
     @Override
-    public ArrayList<iReducer> getReducers(String[] keys) throws RemoteException, AlreadyBoundException {
-        ArrayList<iReducer> res = new ArrayList<>();
+    public iReducer[] getReducers(String[] keys) throws RemoteException, AlreadyBoundException {
+        iReducer[] res = new iReducer[keys.length];
 
         try {
             reduceTasksMutex.acquire();
@@ -91,7 +91,7 @@ public class Master implements iMaster {
 
                     reduceTasks.put(keys[i], reduceManager.createReduceTask(keys[i], masterStub));
                 }
-                res.add(reduceTasks.get(keys[i]));
+                res[i] = reduceTasks.get(keys[i]);
             }
             reduceTasksMutex.release();
         } catch (InterruptedException e) {
@@ -112,7 +112,6 @@ public class Master implements iMaster {
                 System.out.println("reached here");
                 reduceTasksMutex.acquire();
                 for (iReducer reduceTask : reduceTasks.values()) {
-
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
@@ -162,7 +161,7 @@ public class Master implements iMaster {
             outputLines.add(key + ": " + masterWordCount.get(key));
         }
 
-        String log = String.join("\n", outputLines);
+        String log = String.join("\r\n", outputLines);
 
         // make sure out/ dir exists
         File dir = new File("data");
@@ -249,7 +248,7 @@ public class Master implements iMaster {
             // TODO change this back
 //            if (scan.nextLine().equals("start")) {
             if (true) {
-                master.wordCountFile("dummy.text");
+                master.wordCountFile("../dummy.text");
                 break;
             } else {
                 System.out.println("didn't catch that, try 'start'...");
