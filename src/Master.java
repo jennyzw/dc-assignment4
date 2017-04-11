@@ -248,7 +248,7 @@ public class Master implements iMaster {
             // TODO change this back
 //            if (scan.nextLine().equals("start")) {
             if (true) {
-                master.wordCountFile("../dummy.text");
+                master.wordCountFile("dummy.text");
                 break;
             } else {
                 System.out.println("didn't catch that, try 'start'...");
