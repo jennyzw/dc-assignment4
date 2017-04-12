@@ -106,10 +106,8 @@ public class Master implements iMaster {
         try {
             mapTasksMutex.acquire();
             mapTasks.remove(name);
-            System.out.println("mapper " + name + " is done");
 
             if (mapTasks.isEmpty()) {
-                System.out.println("reached here");
                 reduceTasksMutex.acquire();
                 for (iReducer reduceTask : reduceTasks.values()) {
                     new Thread(new Runnable() {
@@ -134,7 +132,6 @@ public class Master implements iMaster {
 
     @Override
     public void receiveOutput(String key, int value) throws RemoteException {
-        System.out.println("output: " + key + " - " + value);
         try {
             masterWordCountMutex.acquire();
             masterWordCount.put(key, value);
@@ -202,7 +199,6 @@ public class Master implements iMaster {
 
                 String mapperName = nameGenerator.next();
                 final String line = reader.nextLine();
-                System.out.println(line);
 
                 try {
                     final iMapper mapTask = mapManager.createMapTask(mapperName);
@@ -250,8 +246,8 @@ public class Master implements iMaster {
 //            if (scan.nextLine().equals("start")) {
             if (true) {
                 master.wordCountFile(
-                        "dummy.txt"
-//                        "mission_earth.txt"
+//                        "dummy.txt"
+                        "mission_earth.txt"
                 );
                 break;
             } else {

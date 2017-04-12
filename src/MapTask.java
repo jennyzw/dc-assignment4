@@ -32,20 +32,21 @@ public class MapTask implements iMapper {
 
     @Override
     public iMapper createMapTask(String name) throws RemoteException, AlreadyBoundException {
-        System.out.println("creating map task: " + name);
+//        System.out.println("creating map task: " + name);
         return (iMapper) UnicastRemoteObject.exportObject(new MapTask(name, false), 0);
     }
 
     @Override
     public void processInput(String input, iMaster theMaster) throws RemoteException, AlreadyBoundException {
-        System.out.println("processing input: " + input);
-        String[] words = input.split("\\s+");
-        System.out.println(words.length);
+//        System.out.println("processing input: " + input);
+        String[] messyWords = input.split("\\s+");
+//        System.out.println(words.length);
 
         HashMap<String, Integer> miniHist = new HashMap<>();
 
-        for (String word : words) {
-            word = word.replace("[^a-zA-Z]", "").toLowerCase();
+        for (int i = 0; i < messyWords.length; i++) {
+            String word = messyWords[i].replaceAll("[^a-zA-Z]", "").toLowerCase();
+            System.out.println(word);
             if (!word.equals("")){
                 miniHist.put(word, miniHist.getOrDefault(word, 0) + 1);
             }
