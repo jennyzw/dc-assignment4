@@ -55,6 +55,7 @@ public class ReduceTask implements iReducer {
             public void run() {
                 try {
 //                    System.out.println(key + " count: " + count);
+                    System.out.println("reporting count to master: " + key + " = " + count);
                     master.receiveOutput(key, count);
                 } catch (RemoteException e) {
                     e.printStackTrace();

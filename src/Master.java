@@ -185,9 +185,12 @@ public class Master implements iMaster {
 
         // make sure the target file exists
         File target = new File(filepath);
-        assert(target.exists());
-
-        System.out.println("found " + filepath + ", commencing count...");
+        if(!target.exists()) {
+            System.out.println("file " + filepath + " not found, please respecify in src/Master.main");
+            return;
+        } else {
+            System.out.println("found " + filepath + ", commencing count...");
+        }
 
         try {
             Scanner reader = new Scanner(target);
@@ -232,7 +235,8 @@ public class Master implements iMaster {
 
         String[] workerIPs = new String[] {
                 // enter ip's of worker machines here
-                "127.0.0.1",
+                "172.31.31.88",
+                "172.31.17.196"
         };
 
         System.out.println("Initializing and connecting master");

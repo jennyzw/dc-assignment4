@@ -38,7 +38,7 @@ public class MapTask implements iMapper {
 
     @Override
     public void processInput(String input, iMaster theMaster) throws RemoteException, AlreadyBoundException {
-//        System.out.println("processing input: " + input);
+        System.out.println(name + " processing input: " + input);
         String[] messyWords = input.split("\\s+");
 //        System.out.println(words.length);
 
