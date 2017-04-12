@@ -3,7 +3,6 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Semaphore;
 
@@ -42,7 +41,6 @@ public class MapTask implements iMapper {
         System.out.println("processing input: " + input);
         String[] words = input.split("\\s+");
         System.out.println(words.length);
-        System.out.println(words[0]);
 
         HashMap<String, Integer> miniHist = new HashMap<>();
 

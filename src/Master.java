@@ -235,7 +235,7 @@ public class Master implements iMaster {
     public static void main(String[] args) {
 
         String[] workerIPs = new String[] {
-                "127.0.0.1",
+                "172.31.26.45",
         };
 
         System.out.println("Initializing and connecting master");
@@ -248,7 +248,7 @@ public class Master implements iMaster {
             // TODO change this back
 //            if (scan.nextLine().equals("start")) {
             if (true) {
-                master.wordCountFile("../dummy.text");
+                master.wordCountFile("mission_earth.txt");
                 break;
             } else {
                 System.out.println("didn't catch that, try 'start'...");
