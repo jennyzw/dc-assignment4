@@ -31,13 +31,13 @@ public class MapTask implements iMapper {
     }
 
     @Override
-    public iMapper createMapTask(String name) throws RemoteException, AlreadyBoundException {
+    public int createMapTask(String name) throws RemoteException, AlreadyBoundException {
 //        System.out.println("creating map task: " + name);
         return (iMapper) UnicastRemoteObject.exportObject(new MapTask(name, false), 0);
     }
 
     @Override
-    public void processInput(String input, iMaster theMaster) throws RemoteException, AlreadyBoundException {
+    public void processInput(int id, String input, iMaster theMaster) throws RemoteException, AlreadyBoundException {
         System.out.println(name + " processing input: " + input);
         String[] messyWords = input.split("\\s+");
 //        System.out.println(words.length);
