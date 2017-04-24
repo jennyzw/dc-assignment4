@@ -239,7 +239,7 @@ public class Master implements iMaster {
         };
 
         System.out.println("Initializing and connecting master");
-        Master master = new Master(workerIPs, 1, 1);
+        Master master = new Master(workerIPs, 1, 1); //even distribution between machines used for mapping and reducing
 
 
         System.out.println("type 'start' to commence MapReduce");
@@ -261,3 +261,4 @@ public class Master implements iMaster {
     }
 
 }
+
