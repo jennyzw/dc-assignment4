@@ -40,7 +40,7 @@ public class Master implements iMaster {
     }
 
 
-    public Master(String[] workerIPs) {
+    public Master(String[] workerIPs, int numMappers, int numReducers) {
         mapManagers = new LinkedList<>();
         reduceManagers = new LinkedList<>();
         reduceTasks = new HashMap<>();
@@ -53,7 +53,6 @@ public class Master implements iMaster {
         nameGenerator = new MapperNameGenerator();
 
         try {
-
             // export self
             masterStub = (iMaster) UnicastRemoteObject.exportObject(this, 0);
 
@@ -62,11 +61,11 @@ public class Master implements iMaster {
             for (String ip: workerIPs) {
                 registry = LocateRegistry.getRegistry(ip, 1099);
 
-                iMapper mapManager = (iMapper) registry.lookup("mapManager");
+                iMapperManager mapManager = (iMapperManager) registry.lookup("manager");
                 mapManagers.offer(mapManager);
                 System.out.println("found map manager at ip " + ip + " : " + mapManager);
 
-                iReducer reduceManager = (iReducer) registry.lookup("reduceManager");
+                iReducerManager reduceManager = (iReducerManager) registry.lookup("manager");
                 reduceManagers.offer(reduceManager);
                 System.out.println("found reduce manager at ip " + ip + " : " + reduceManager);
             }
@@ -240,7 +239,7 @@ public class Master implements iMaster {
         };
 
         System.out.println("Initializing and connecting master");
-        Master master = new Master(workerIPs);
+        Master master = new Master(workerIPs, 1, 1); //even distribution between machines used for mapping and reducing
 
 
         System.out.println("type 'start' to commence MapReduce");
@@ -262,3 +261,4 @@ public class Master implements iMaster {
     }
 
 }
+
