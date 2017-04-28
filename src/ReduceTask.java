@@ -7,26 +7,14 @@ import java.rmi.server.UnicastRemoteObject;
 /**
  * Created by duncan on 4/5/17.
  */
-public class ReduceTask implements iReducer {
+public class ReduceTask {
 
     private iMaster master;
     private String key;
     public int count;
 
-    public ReduceTask(boolean isManager) {
-
-        if (isManager) {
-            // export manager objects and bind to local rmi for master access
-            try {
-                Registry registry = LocateRegistry.getRegistry(1099);
-                iReducer reduceManagerStub = (iReducer) UnicastRemoteObject.exportObject(this, 0);
-                registry.rebind("reduceManager", reduceManagerStub);
-                System.out.println("Reduce manager ready!");
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }
-
+    public ReduceTask() {
+        
     }
 
     public ReduceTask(String key, iMaster master) {
@@ -35,19 +23,10 @@ public class ReduceTask implements iReducer {
         this.count = 0;
     }
 
-    @Override
-    public int createReduceTask(String key, iMaster master) throws RemoteException, AlreadyBoundException {
-//        System.out.println("creating new reduce task: " + key);
-        return (iReducer) UnicastRemoteObject.exportObject(new ReduceTask(key, master), 0);
-    }
-
-    @Override
     public void receiveValues(int id, int value) throws RemoteException {
-//        System.out.println(key + ": " + value);
         count += value;
     }
 
-    @Override
     public int terminate() throws RemoteException {
 
         new Thread(new Runnable() {

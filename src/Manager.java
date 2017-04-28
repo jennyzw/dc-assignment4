@@ -18,7 +18,7 @@ public class Manager implements iMapperManager, iReducerManager {
 
     @Override
     public void processInput(int id, String input, iMaster theMaster) throws RemoteException, AlreadyBoundException {
-
+        
     }
 
     @Override
