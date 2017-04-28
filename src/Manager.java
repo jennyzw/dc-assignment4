@@ -7,7 +7,7 @@ import java.util.HashMap;
  */
 public class Manager implements iMapperManager, iReducerManager {
 
-    HashMap<Integer, ReduceTask> mappers;
+    HashMap<Integer, MapTask> mappers;
     HashMap<Integer, ReduceTask> reducers;
 
     public Manager() {
@@ -22,7 +22,8 @@ public class Manager implements iMapperManager, iReducerManager {
 
     @Override
     public void processInput(int id, String input, iMaster theMaster) throws RemoteException, AlreadyBoundException {
-        
+       MapTask mapper = mappers.get(id);
+       mapper.processInput(id, input, theMaster);
     }
 
     @Override
@@ -32,7 +33,8 @@ public class Manager implements iMapperManager, iReducerManager {
 
     @Override
     public void receiveValues(int id, int value) throws RemoteException {
-
+        ReduceTask reducer = reducers.get(id);
+        reducer.receiveValues(id, value);
     }
 
     @Override
