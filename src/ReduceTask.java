@@ -8,7 +8,7 @@ public class ReduceTask {
     private String key;
     public int count;
 
-    public ReduceTask(String key, iMaster master) {
+    public ReduceTask(String key) {
         this.key = key;
         this.count = 0;
     }
