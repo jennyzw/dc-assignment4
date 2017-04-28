@@ -1,14 +1,18 @@
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
+import java.util.HashMap;
 
 /**
  * Created by duncan on 4/6/17.
  */
 public class Manager implements iMapperManager, iReducerManager {
 
-    public static void main(String[] args) {
-        new MapTask("mapManager", true);
-        new ReduceTask(true);
+    HashMap<Integer, ReduceTask> mappers;
+    HashMap<Integer, ReduceTask> reducers;
+
+    public Manager() {
+        mappers = new HashMap<>();
+        reducers = new HashMap<>();
     }
 
     @Override
