@@ -1,4 +1,3 @@
-import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.concurrent.Semaphore;
@@ -9,7 +8,7 @@ import java.util.concurrent.Semaphore;
 
 public class MapTask {
 
-    public void processInput(int id, String input, iMaster theMaster) throws RemoteException, AlreadyBoundException {
+    public void processInput(int id, String input, iMaster theMaster) throws RemoteException {
         System.out.println("processing input: " + input);
         String[] messyWords = input.split("\\s+");
 

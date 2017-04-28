@@ -1,5 +1,4 @@
 import java.io.*;
-import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -57,7 +56,7 @@ public class Master implements iMaster {
     }
 
     @Override
-    public Tuple<iReducerManager, Integer>[] getReducers(String[] keys) throws RemoteException, AlreadyBoundException {
+    public Tuple<iReducerManager, Integer>[] getReducers(String[] keys) throws RemoteException {
         Tuple<iReducerManager, Integer>[] res = new Tuple[keys.length];
 
         for (int i = 0; i < keys.length; i++) {
@@ -171,26 +170,24 @@ public class Master implements iMaster {
 
                 final String line = reader.nextLine();
 
-                try {
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                mapManager.processInput(internalID, line);
-                            } catch (RemoteException | AlreadyBoundException e) {
-                                e.printStackTrace();
-                            }
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            mapManager.processInput(internalID, line, masterStub);
+                        } catch (RemoteException e) {
+                            e.printStackTrace();
                         }
-                    }).start();
+                    }
+                }).start();
 
-                } catch (RemoteException | AlreadyBoundException e) {
-                    e.printStackTrace();
-                }
             }
 
             System.out.println("all lines assigned to mappers");
 
         } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (RemoteException e) {
             e.printStackTrace();
         }
     }

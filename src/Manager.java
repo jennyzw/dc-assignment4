@@ -1,6 +1,6 @@
-import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
 import java.util.HashMap;
+import java.util.concurrent.Semaphore;
 
 /**
  * Created by duncan on 4/6/17.
@@ -19,34 +19,44 @@ public class Manager implements iMapperManager, iReducerManager {
         reducers = new HashMap<>();
         nextMapperID = 0;
         nextReducerID = 0;
-        mapTasksMutex = new Sempahore(1);
+        mapTasksMutex = new Semaphore(1);
         reduceTasksMutex = new Semaphore(1);
     }
 
     @Override
-    public int createMapTask() throws RemoteException, AlreadyBoundException {
-        mapTasksMutex.aquire();
-        nextMapperID++;
-        MapTask mapper = new MapTask();
-        mappers.put(nextMapperID, mapper);
-        mapTasksMutex.release();
-        return nextMapperID;
+    public int createMapTask() throws RemoteException {
+        try {
+            mapTasksMutex.acquire();
+            nextMapperID++;
+            MapTask mapper = new MapTask();
+            mappers.put(nextMapperID, mapper);
+            mapTasksMutex.release();
+            return nextMapperID;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return 0;
+        }
     }
 
     @Override
-    public void processInput(int id, String input, iMaster theMaster) throws RemoteException, AlreadyBoundException {
+    public void processInput(int id, String input, iMaster theMaster) throws RemoteException {
        MapTask mapper = mappers.get(id);
        mapper.processInput(id, input, theMaster);
     }
 
     @Override
-    public int createReduceTask(String key) throws RemoteException, AlreadyBoundException {
-        reduceTasksMutex.acquire();
-        nextReducerID++;
-        ReduceTask reducer = new ReduceTask(key);
-        reducer.put(nextReducerID, reducer);
-        reduceTasksMutex.release();
-        return nextReducerID;
+    public int createReduceTask(String key) throws RemoteException {
+        try {
+            reduceTasksMutex.acquire();
+            nextReducerID++;
+            ReduceTask reducer = new ReduceTask(key);
+            reducers.put(nextReducerID, reducer);
+            reduceTasksMutex.release();
+            return nextReducerID;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return 0;
+        }
     }
 
     @Override
@@ -57,6 +67,7 @@ public class Manager implements iMapperManager, iReducerManager {
 
     @Override
     public int terminate() throws RemoteException {
-
+        // TODO
+        return 0;
     }
 }
