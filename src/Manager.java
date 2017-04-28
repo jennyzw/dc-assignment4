@@ -31,7 +31,7 @@ public class Manager implements iMapperManager, iReducerManager {
     }
 
     @Override
-    public void receiveValues(int id, int value) throws RemoteException {
+    public void receiveValue(int id, int value) throws RemoteException {
 
     }
 

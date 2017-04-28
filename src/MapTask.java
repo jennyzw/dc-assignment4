@@ -1,8 +1,5 @@
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.concurrent.Semaphore;
 
@@ -12,16 +9,9 @@ import java.util.concurrent.Semaphore;
 
 public class MapTask {
 
-    String name;
-
-    public MapTask(String name, boolean isManager) {
-        this.name = name;
-    }
-
     public void processInput(int id, String input, iMaster theMaster) throws RemoteException, AlreadyBoundException {
-        System.out.println(name + " processing input: " + input);
+        System.out.println("processing input: " + input);
         String[] messyWords = input.split("\\s+");
-//        System.out.println(words.length);
 
         HashMap<String, Integer> miniHist = new HashMap<>();
 
@@ -34,20 +24,21 @@ public class MapTask {
         }
         String[] distinctWords = miniHist.keySet().toArray(new String[miniHist.size()]);
 
-        iReducerManager[] reducerManagers = theMaster.getReducerManagers(distinctWords);
+        Tuple<iReducerManager, Integer>[] t = theMaster.getReducers(distinctWords);
         // this semaphore will be used to verify that all reducers have received values
         // before we report that the mapper is done.
         Semaphore valuesReportedSemaphore = new Semaphore(0);
 
         try {
             for (int i = 0; i < distinctWords.length; i++) {
-                final iReducerManager reducerManager = reducerManagers[i];
+                final iReducerManager reducerManager = t[i].x;
+                final int reducerID = t[i].y;
                 final int value = miniHist.get(distinctWords[i]);
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
                         try {
-                            reducer.receiveValues(value);
+                            reducerManager.receiveValue(reducerID, value);
                             valuesReportedSemaphore.release();
                         } catch (RemoteException e) {
                             e.printStackTrace();
@@ -57,14 +48,11 @@ public class MapTask {
             }
 
             valuesReportedSemaphore.acquire(distinctWords.length);
-            theMaster.markMapperDone(name);
+//            theMaster.markMapperDone(name);
 
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
-    public static void main(String[] args) {
-        MapTask m = new MapTask("mapManager", true);
-    }
 }

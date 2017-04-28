@@ -8,7 +8,7 @@ import java.rmi.RemoteException;
  */
 public interface iReducerManager extends Remote, Serializable {
     public int createReduceTask (String key, iMaster master) throws RemoteException, AlreadyBoundException;
-    public void receiveValues (int id, int value) throws RemoteException;
+    public void receiveValue (int id, int value) throws RemoteException;
     public int terminate() throws RemoteException;
 
     //public int getCount(int id) throws RemoteException;
