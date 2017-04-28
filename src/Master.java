@@ -16,41 +16,20 @@ public class Master implements iMaster {
 
     private iMaster masterStub;  // for passing out to map/reduce tasks
 
-    private Queue<iMapper> mapManagers;  // stubs to one per worker machine
-    private Queue<iReducer> reduceManagers;
-
-    private HashMap<String, iReducer> reduceTasks;  // stubs to active reduce tasks
-    private Semaphore reduceTasksMutex;
-    private HashMap<String, iMapper> mapTasks;  // tracks active map tasks
-    private Semaphore mapTasksMutex;
+    private Queue<iMapperManager> mapManagers;  // stubs to one per worker machine
+    private Queue<iReducerManager> reduceManagers;
+    private HashMap<String, Tuple<iReducerManager, Integer>> reducerLocations;
 
     private HashMap<String, Integer> masterWordCount;  // for collecting reducer values
     private Semaphore masterWordCountMutex;
-
-    private MapperNameGenerator nameGenerator;  // for uniquely naming mappers
-
-    private class MapperNameGenerator {
-        // used to generate mapper identification names
-        private int i = 0;
-
-        public String next() {
-            i++;
-            return String.format("map_%07d", i);
-        }
-    }
 
 
     public Master(String[] workerIPs, int numMappers, int numReducers) {
         mapManagers = new LinkedList<>();
         reduceManagers = new LinkedList<>();
-        reduceTasks = new HashMap<>();
-        reduceTasksMutex = new Semaphore(1);
-        mapTasks = new HashMap<>();
-        mapTasksMutex = new Semaphore(1);
+        reducerLocations = new HashMap<>();
         masterWordCount = new HashMap<>();
         masterWordCountMutex = new Semaphore(1);
-
-        nameGenerator = new MapperNameGenerator();
 
         try {
             // export self
@@ -78,55 +57,50 @@ public class Master implements iMaster {
     }
 
     @Override
-    public iReducer[] getReducers(String[] keys) throws RemoteException, AlreadyBoundException {
-        iReducer[] res = new iReducer[keys.length];
+    public Tuple<iReducerManager, Integer>[] getReducers(String[] keys) throws RemoteException, AlreadyBoundException {
+        Tuple<iReducerManager, Integer>[] res = new Tuple[keys.length];
 
-        try {
-            reduceTasksMutex.acquire();
-            for (int i = 0; i < keys.length; i++) {
-                if (!reduceTasks.containsKey(keys[i])) {
-                    iReducer reduceManager = reduceManagers.poll();
-                    reduceManagers.offer(reduceManager);
+        for (int i = 0; i < keys.length; i++) {
+            if (!reducerLocations.containsKey(keys[i])) {
+                iReducerManager reduceManager = reduceManagers.poll();
+                reduceManagers.offer(reduceManager);
 
-                    reduceTasks.put(keys[i], reduceManager.createReduceTask(keys[i], masterStub));
-                }
-                res[i] = reduceTasks.get(keys[i]);
+                int internalLoc = reduceManager.createReduceTask(keys[i]);
+                reducerLocations.put(keys[i], new Tuple<>(reduceManager, internalLoc));
             }
-            reduceTasksMutex.release();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            res[i] = reducerLocations.get(keys[i]);
         }
 
         return res;
     }
 
     @Override
-    public void markMapperDone(String name) throws RemoteException {
-        try {
-            mapTasksMutex.acquire();
-            mapTasks.remove(name);
-
-            if (mapTasks.isEmpty()) {
-                reduceTasksMutex.acquire();
-                for (iReducer reduceTask : reduceTasks.values()) {
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                reduceTask.terminate();
-                            } catch (RemoteException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }).start();
-
-                }
-                reduceTasksMutex.release();
-            }
-            mapTasksMutex.release();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    public void markMapperDone(int id, iMapperManager manager) throws RemoteException {
+//        try {
+//            mapTasksMutex.acquire();
+//            mapTasks.remove(name);
+//
+//            if (mapTasks.isEmpty()) {
+//                reduceTasksMutex.acquire();
+//                for (iReducer reduceTask : reduceTasks.values()) {
+//                    new Thread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            try {
+//                                reduceTask.terminate();
+//                            } catch (RemoteException e) {
+//                                e.printStackTrace();
+//                            }
+//                        }
+//                    }).start();
+//
+//                }
+//                reduceTasksMutex.release();
+//            }
+//            mapTasksMutex.release();
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
     }
 
     @Override
@@ -136,13 +110,7 @@ public class Master implements iMaster {
             masterWordCount.put(key, value);
             masterWordCountMutex.release();
 
-            reduceTasksMutex.acquire();
-            reduceTasks.remove(key);
-
-            if (reduceTasks.isEmpty()) {
-                writeToFile();
-            }
-            reduceTasksMutex.release();
+            // TODO write to file?
 
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -193,24 +161,22 @@ public class Master implements iMaster {
 
         try {
             Scanner reader = new Scanner(target);
-            iMapper mapManager;
+            iMapperManager mapManager;
 
             while (reader.hasNextLine()) {
                 mapManager = mapManagers.poll();
                 mapManagers.offer(mapManager);
 
-                String mapperName = nameGenerator.next();
+                final int internalID = mapManager.createMapTask();
+
                 final String line = reader.nextLine();
 
                 try {
-                    final iMapper mapTask = mapManager.createMapTask(mapperName);
-                    mapTasks.put(mapperName, mapTask);
-
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
                             try {
-                                mapTask.processInput(line, masterStub);
+                                mapManager.processInput(internalID, line);
                             } catch (RemoteException | AlreadyBoundException e) {
                                 e.printStackTrace();
                             }
