@@ -10,33 +10,14 @@ import java.util.concurrent.Semaphore;
  * Created by duncan on 4/5/17.
  */
 
-public class MapTask implements iMapper {
+public class MapTask {
 
     String name;
 
     public MapTask(String name, boolean isManager) {
-
         this.name = name;
-
-        if (isManager) {
-            try {
-                Registry registry = LocateRegistry.getRegistry();
-                iMapper mapManagerStub = (iMapper) UnicastRemoteObject.exportObject(this, 0);
-                registry.rebind("mapManager", mapManagerStub);
-                System.out.println("Map manager ready!");
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
-    @Override
-    public int createMapTask(String name) throws RemoteException, AlreadyBoundException {
-//        System.out.println("creating map task: " + name);
-        return (iMapper) UnicastRemoteObject.exportObject(new MapTask(name, false), 0);
-    }
-
-    @Override
     public void processInput(int id, String input, iMaster theMaster) throws RemoteException, AlreadyBoundException {
         System.out.println(name + " processing input: " + input);
         String[] messyWords = input.split("\\s+");
@@ -53,14 +34,14 @@ public class MapTask implements iMapper {
         }
         String[] distinctWords = miniHist.keySet().toArray(new String[miniHist.size()]);
 
-        iReducer[] reducers = theMaster.getReducers(distinctWords);
+        iReducerManager[] reducerManagers = theMaster.getReducerManagers(distinctWords);
         // this semaphore will be used to verify that all reducers have received values
         // before we report that the mapper is done.
         Semaphore valuesReportedSemaphore = new Semaphore(0);
 
         try {
             for (int i = 0; i < distinctWords.length; i++) {
-                final iReducer reducer = reducers[i];
+                final iReducerManager reducerManager = reducerManagers[i];
                 final int value = miniHist.get(distinctWords[i]);
                 new Thread(new Runnable() {
                     @Override
