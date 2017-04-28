@@ -23,12 +23,16 @@ public class Master implements iMaster {
     private Semaphore masterWordCountMutex;
 
 
-    public Master(String[] workerIPs, int numMappers, int numReducers) {
+    public Master(String[] workerIPs, int numMappers, int numReducers) throws IndexOutOfBoundsException {
         mapManagers = new LinkedList<>();
         reduceManagers = new LinkedList<>();
         reducerLocations = new HashMap<>();
         masterWordCount = new HashMap<>();
         masterWordCountMutex = new Semaphore(1);
+
+        if (numMappers + numReducers > workerIPs.length) {
+            throw new IndexOutOfBoundsException("not enough worker IPs for specified reducers and mappers");
+        }
 
         try {
             // export self
@@ -36,16 +40,22 @@ public class Master implements iMaster {
 
             // locate stubs to all worker mapper and reducer managers
             Registry registry;
-            for (String ip: workerIPs) {
-                registry = LocateRegistry.getRegistry(ip, 1099);
+            int i = 0;
+            for (; numMappers > 0; numMappers--) {
+                i++;
 
+                registry = LocateRegistry.getRegistry(workerIPs[i], 1099);
                 iMapperManager mapManager = (iMapperManager) registry.lookup("manager");
                 mapManagers.offer(mapManager);
-                System.out.println("found map manager at ip " + ip + " : " + mapManager);
+                System.out.println("found map manager at ip " + workerIPs[i] + " : " + mapManager);
+            }
+            for (; numReducers > 0; numReducers--) {
+                i++;
 
+                registry = LocateRegistry.getRegistry(workerIPs[i], 1099);
                 iReducerManager reduceManager = (iReducerManager) registry.lookup("manager");
                 reduceManagers.offer(reduceManager);
-                System.out.println("found reduce manager at ip " + ip + " : " + reduceManager);
+                System.out.println("found reduce manager at ip " + workerIPs[i] + " : " + reduceManager);
             }
 
         } catch (RemoteException e) {
