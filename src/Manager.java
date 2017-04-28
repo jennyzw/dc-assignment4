@@ -11,20 +11,26 @@ public class Manager implements iMapperManager, iReducerManager {
     HashMap<Integer, ReduceTask> reducers;
     Integer nextMapperID;
     Integer nextReducerID;
+    Semaphore mapTasksMutex;
+    Semaphore reduceTasksMutex;
 
     public Manager() {
         mappers = new HashMap<>();
         reducers = new HashMap<>();
         nextMapperID = 0;
         nextReducerID = 0;
+        mapTasksMutex = new Sempahore(1);
+        reduceTasksMutex = new Semaphore(1);
     }
 
     @Override
     public int createMapTask() throws RemoteException, AlreadyBoundException {
+        mapTasksMutex.aquire();
+        nextMapperID++;
         MapTask mapper = new MapTask();
         mappers.put(nextMapperID, mapper);
-        nextMapperID++;
-        return mappers.get(mapper);
+        mapTasksMutex.release();
+        return nextMapperID;
     }
 
     @Override
@@ -35,10 +41,12 @@ public class Manager implements iMapperManager, iReducerManager {
 
     @Override
     public int createReduceTask(String key) throws RemoteException, AlreadyBoundException {
+        reduceTasksMutex.acquire();
+        nextReducerID++;
         ReduceTask reducer = new ReduceTask(key);
         reducer.put(nextReducerID, reducer);
-        nextReducerID++;
-        return reducers.get(reducer);
+        reduceTasksMutex.release();
+        return nextReducerID;
     }
 
     @Override
